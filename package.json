@@ -1,0 +1,25 @@
+{
+  "name": "colocolo-notifier",
+  "version": "1.0.0",
+  "description": "Notificador automatico de partidos via WhatsApp",
+  "main": "src/index.js",
+  "scripts": {
+    "migrate": "node src/db/migrate.js",
+    "setup": "node src/db/migrate.js && node src/db/seed.js",
+    "job:prematch": "node src/jobs/prematch.js",
+    "job:lineup": "node src/jobs/lineup.js",
+    "job:result": "node src/jobs/result.js",
+    "test:whatsapp": "node src/scripts/test-whatsapp.js",
+    "dry-run": "node src/scripts/dry-run.js",
+    "find-ids": "node src/scripts/find-ids.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
