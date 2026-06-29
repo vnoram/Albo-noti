@@ -14,7 +14,7 @@ const INITIAL_USER = {
 // Agregar o quitar segun la temporada
 const COLOCOLO_LEAGUES = [
   { slug: 'chi.1',                 name: 'Primera Division' },
-  { slug: 'chi.2',                 name: 'Copa Chile' },
+  { slug: 'chi.copa_chi',          name: 'Copa Chile' },
   { slug: 'conmebol.libertadores', name: 'Copa Libertadores' },
   { slug: 'conmebol.sudamericana', name: 'Copa Sudamericana' },
 ];
