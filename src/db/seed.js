@@ -42,6 +42,12 @@ async function seed() {
     );
     logger.info('  Suscripcion a Colo-Colo (team_id=' + config.football.coloColoTeamId + ')');
 
+    // Limpiar ligas obsoletas
+    await client.query(
+      `DELETE FROM team_leagues WHERE team_id=$1 AND league_slug NOT IN (${COLOCOLO_LEAGUES.map((_,i)=>'$'+(i+2)).join(',')})`,
+      [config.football.coloColoTeamId, ...COLOCOLO_LEAGUES.map(l=>l.slug)]
+    );
+
     // Registrar ligas de Colo-Colo
     for (const liga of COLOCOLO_LEAGUES) {
       await client.query(

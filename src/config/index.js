@@ -31,7 +31,7 @@ const config = {
       lineup:   process.env.WA_TEMPLATE_LINEUP   || 'colocolo_lineup',
       result:   process.env.WA_TEMPLATE_RESULT   || 'colocolo_result',
     },
-    languageCode: 'es',
+    languageCode: 'es_CL',
   },
 
   timezone: 'America/Santiago',
