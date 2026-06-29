@@ -8,10 +8,10 @@ const logger = require('../utils/logger');
  * no indexadas en ESPN.
  *
  * API no oficial de SofaScore (misma que usa su web/app).
- * ID de Colo-Colo en SofaScore: 1940
+ * ID de Colo-Colo en SofaScore: 3155
  *
  * Para agregar otros equipos, buscar su SofaScore ID en:
- * https://www.sofascore.com/ -> URL del equipo contiene el ID
+ * https://api.sofascore.com/api/v1/search/all?q=EQUIPO&sport=football
  */
 
 const BASE = 'https://api.sofascore.com/api/v1';
@@ -30,11 +30,12 @@ const http = axios.create({ headers: HEADERS, timeout: 12000 });
 /**
  * Mapa de ESPN team_id -> SofaScore team_id.
  * Ampliar segun se agreguen mas equipos.
- * Para encontrar el ID de SofaScore: busca el equipo en sofascore.com
- * y mira la URL, ej: /team/colo-colo/1940 -> ID es 1940
+ * Para encontrar el ID de SofaScore:
+ * GET https://api.sofascore.com/api/v1/search/all?q=EQUIPO&sport=football
+ * y usar el campo "id" del resultado con country.alpha2 == 'CL'
  */
 const ESPN_TO_SOFASCORE = {
-  2688: 1940, // Colo-Colo
+  2688: 3155, // Colo-Colo (verificado via SofaScore search API)
 };
 
 function _normalizeStatus(ssStatus) {
