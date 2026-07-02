@@ -27,9 +27,10 @@ const config = {
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
     baseUrl:       'https://graph.facebook.com/v23.0',
     templates: {
-      prematch: process.env.WA_TEMPLATE_PREMATCH || 'colocolo_prematch',
-      lineup:   process.env.WA_TEMPLATE_LINEUP   || 'colocolo_lineup',
-      result:   process.env.WA_TEMPLATE_RESULT   || 'colocolo_result',
+      prematch: process.env.WA_TEMPLATE_PREMATCH  || 'prematch',
+      reminder: process.env.WA_TEMPLATE_REMINDER  || 'recordatorio',
+      lineup:   process.env.WA_TEMPLATE_LINEUP    || 'colocolo_lineup',
+      result:   process.env.WA_TEMPLATE_RESULT    || 'colocolo_result',
     },
     languageCode: 'es_CL',
   },

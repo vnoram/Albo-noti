@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS sent_notifications (
   source     VARCHAR(20)  NOT NULL DEFAULT 'espn',
   fixture_id BIGINT       NOT NULL,
   user_id    INT          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type       VARCHAR(20)  NOT NULL CHECK (type IN ('prematch', 'lineup', 'result')),
+  type       VARCHAR(20)  NOT NULL CHECK (type IN ('prematch', 'reminder', 'lineup', 'result')),
   sent_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   CONSTRAINT uq_notification UNIQUE (source, fixture_id, user_id, type)
 );

@@ -7,11 +7,11 @@ Servicio backend autónomo que notifica por WhatsApp cuándo juega Colo-Colo, co
 ## Arquitectura
 
 ```
-Railway Cron Jobs (3)
+Railway Cron Jobs (4)
     │
     ▼
 Backend Node.js
-    ├── FootballService ──▶ API-Football v3
+    ├── FootballService / SofaScoreService ──▶ ESPN + SofaScore (fixtures)
     ├── WhatsAppService ──▶ WhatsApp Cloud API (Meta)
     └── Repositories   ──▶ PostgreSQL (Railway)
 ```
@@ -40,6 +40,7 @@ Completar esto antes de desplegar. Solo se hace una vez.
 | Nombre | Cuerpo |
 |---|---|
 | `colocolo_prematch` | `⚽ Hoy juega Colo-Colo vs {{1}} a las {{2}} en {{3}}. ¡Vamos los albos! 🔵⚪` |
+| `recordatorio` | `⏰ En una hora juega Colo-Colo vs {{1}} ({{2}}) en {{3}}. ¡Vamos los albos! 🔵⚪` |
 | `colocolo_lineup` | `📋 Alineación de Colo-Colo vs {{1}}:\n{{2}}` |
 | `colocolo_result` | `🏁 Final: Colo-Colo {{1}} - {{2}} {{3}}` |
 
@@ -98,11 +99,12 @@ git push origin main
 
 ### Paso 6: Configurar los Cron Jobs en Railway
 
-En tu proyecto Railway → **New Service → Cron Job** (crear 3):
+En tu proyecto Railway → **New Service → Cron Job** (crear 4):
 
 | Nombre | Comando | Schedule (UTC) | Descripción |
 |---|---|---|---|
 | prematch-daily | `npm run job:prematch` | `0 12 * * *` | 09:00 Chile (UTC-3) |
+| reminder-check | `npm run job:reminder` | `*/15 * * * *` | Cada 15 min, todo el día — envía cuando faltan 45-90 min para el partido |
 | lineup-check | `npm run job:lineup` | `*/15 18-21 * * *` | Cada 15 min, 15:00–18:00 Chile |
 | result-check | `npm run job:result` | `0,30 21-23 * * *` | Cada 30 min, 18:00–20:00 Chile |
 
@@ -159,6 +161,7 @@ src/
   templates/messages.js     Datos para las variables de cada plantilla
   jobs/
     prematch.js             Job: aviso día de partido
+    reminder.js             Job: recordatorio 45-90 min antes del partido
     lineup.js               Job: aviso alineación
     result.js               Job: aviso resultado final
   scripts/
@@ -179,17 +182,4 @@ node src/scripts/find-ids.js
 # Simular job prematch (ejecutar sin horario de cron)
 node src/jobs/prematch.js
 
-# Ver envíos registrados en BD
-psql $DATABASE_URL -c "SELECT * FROM sent_notifications ORDER BY sent_at DESC LIMIT 10;"
-```
-
----
-
-## Costos
-
-| Servicio | Plan | Costo |
-|---|---|---|
-| Railway | Hobby (suscripción existente) | $0 adicional |
-| API-Football | Free (100 req/día) | $0 |
-| WhatsApp Cloud API | Número de prueba Meta | $0 |
-| **Total MVP** | | **$0** |
+# Ver envíos re

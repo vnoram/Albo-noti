@@ -36,6 +36,11 @@ const WhatsAppService = {
     return WhatsAppService._send(body, 'prematch', phone);
   },
 
+  async sendReminder(phone, { rival, hora, estadio }) {
+    const body = buildTemplateBody(phone, config.whatsapp.templates.reminder, [rival, hora, estadio]);
+    return WhatsAppService._send(body, 'reminder', phone);
+  },
+
   async sendLineup(phone, { rival, jugadores }) {
     const body = buildTemplateBody(phone, config.whatsapp.templates.lineup, [rival, jugadores]);
     return WhatsAppService._send(body, 'lineup', phone);
