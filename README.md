@@ -182,4 +182,17 @@ node src/scripts/find-ids.js
 # Simular job prematch (ejecutar sin horario de cron)
 node src/jobs/prematch.js
 
-# Ver envíos re
+# Ver envíos registrados en BD
+psql $DATABASE_URL -c "SELECT * FROM sent_notifications ORDER BY sent_at DESC LIMIT 10;"
+```
+
+---
+
+## Costos
+
+| Servicio | Plan | Costo |
+|---|---|---|
+| Railway | Hobby (suscripción existente) | $0 adicional |
+| API-Football | Free (100 req/día) | $0 |
+| WhatsApp Cloud API | Número de prueba Meta | $0 |
+| **Total MVP** | | **$0** |
