@@ -12,14 +12,24 @@ const templates              = require('../templates/messages');
 const logger                 = require('../utils/logger');
 const { todayInChile, minutesUntilMatch } = require('../utils/chileTime');
 
-// Ventana: envia cuando faltan entre 45 y 90 minutos
-const WINDOW_OPEN_MIN  = 90;
+// Ventana: envia cuando falta entre 45 y 75 minutos (~1 hora antes).
+// Ancho de 30 min = mismo intervalo del cron -> garantiza exactamente 1 corrida
+// dentro de la ventana por partido, sin importar el minuto exacto del kickoff.
+const WINDOW_OPEN_MIN  = 75;
 const WINDOW_CLOSE_MIN = 45;
 
 async function getAllFixturesToday(teamId, date, ligas) {
   const seen = new Map();
   const all  = [];
-  const add = f => { const k = (f.source||'espn')+':'+f.id; if (!seen.has(k)) { seen.set(k,true); all.push(f); } };
+  // Dedupe por el PAR de equipos (no por id+fuente): ESPN y SofaScore
+  // reportan el mismo partido real con IDs distintos, y antes se contaban
+  // como 2 partidos separados -> se enviaba el recordatorio 2 veces.
+  // Se conserva la primera fuente que lo encuentre (ESPN tiene prioridad
+  // porque se consulta primero).
+  const add = f => {
+    const k = [f.home.id, f.away.id].sort((a, b) => a - b).join('-');
+    if (!seen.has(k)) { seen.set(k, true); all.push(f); }
+  };
   for (const { leagueSlug } of ligas) {
     (await FootballService.getMatchesToday(teamId, date, leagueSlug)).forEach(f => add({...f, source:'espn'}));
   }
@@ -50,11 +60,13 @@ async function runReminder() {
       const data = templates.prematch(fixture, teamId);
 
       for (const user of subscribers) {
-        const yaEnviado = await NotificationRepository.exists(fixture.id, user.id, 'reminder', fixture.source);
-        if (yaEnviado) { logger.info('  ' + user.name + ': ya enviado.'); continue; }
+        // Reclamar ANTES de enviar (atomico via UNIQUE + ON CONFLICT).
+        // Si dos corridas de cron caen casi al mismo tiempo, solo una gana
+        // la reclamacion y por lo tanto solo una manda el WhatsApp.
+        const gane = await NotificationRepository.claim(fixture.id, user.id, 'reminder', fixture.source);
+        if (!gane) { logger.info('  ' + user.name + ': ya enviado (o en curso).'); continue; }
         try {
           await WhatsAppService.sendReminder(user.phone, data);
-          await NotificationRepository.register(fixture.id, user.id, 'reminder', fixture.source);
           logger.info('  ' + user.name + ': OK');
         } catch (err) { logger.error('  ' + user.name + ': ERROR ' + err.message); }
       }
