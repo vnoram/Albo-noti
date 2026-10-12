@@ -41,7 +41,7 @@ Completar esto antes de desplegar. Solo se hace una vez.
 |---|---|
 | `prematch` | `⚽ Hoy juega Colo-Colo vs {{1}} a las {{2}} en {{3}}. ¡Vamos los albos! 🔵⚪` |
 | `recordatorio` | `⏰ En una hora juega Colo-Colo vs {{1}} ({{2}}) en {{3}}. ¡Vamos los albos! 🔵⚪` |
-| `colocolo_lineup` | `📋 Alineación de Colo-Colo vs {{1}}:\n{{2}}` |
+| `colocolo_lineup` | `📋 Alineación de Colo-Colo vs {{1}}: {{2}}` |
 | `colocolo_result` | `🏁 Final: Colo-Colo {{1}} - {{2}} {{3}}` |
 
 > ⚠️ Las plantillas deben ser aprobadas por Meta antes de usarlas. El proceso suele tardar minutos.
