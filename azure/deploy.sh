@@ -96,8 +96,14 @@ echo "▶ Jobs"
 upsert_job migrate   manual                  src/db/migrate.js
 upsert_job prematch  "0 12 * * *"            src/jobs/prematch.js   # 09:00 Chile
 upsert_job reminder  "*/15 * * * *"          src/jobs/reminder.js
-upsert_job lineup    "*/15 18-21 * * *"      src/jobs/lineup.js
-upsert_job result    "0,30 21-23 * * *"      src/jobs/result.js
+# Alineacion y resultado necesitan las plantillas colocolo_lineup / colocolo_result aprobadas en Meta.
+# Activar con ENABLE_LINEUP_RESULT=1 en azure/.env.azure cuando existan.
+if [[ "${ENABLE_LINEUP_RESULT:-0}" == "1" ]]; then
+  upsert_job lineup  "*/15 18-21 * * *"      src/jobs/lineup.js
+  upsert_job result  "0,30 21-23 * * *"      src/jobs/result.js
+else
+  echo "  (lineup/result desactivados: falta ENABLE_LINEUP_RESULT=1)"
+fi
 
 echo "▶ Ejecutando migraciones (crea tablas)"
 az containerapp job start -n "job-${AZ_PREFIX}-migrate" -g "$RG" -o none
