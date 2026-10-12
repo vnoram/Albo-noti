@@ -1,19 +1,19 @@
 # Colo-Colo Notifier 🔵⚪
 
-Servicio backend autónomo que notifica por WhatsApp cuándo juega Colo-Colo, con alineación y resultado. Corre 24/7 en Railway sin intervención manual.
+Servicio backend autónomo que notifica por WhatsApp cuándo juega Colo-Colo, con alineación y resultado. Corre en Azure (Container Apps Jobs + PostgreSQL) sin intervención manual.
 
 ---
 
 ## Arquitectura
 
 ```
-Railway Cron Jobs (4)
+Azure Container Apps Jobs (4 cron + 1 migración)
     │
     ▼
 Backend Node.js
     ├── FootballService / SofaScoreService ──▶ ESPN + SofaScore (fixtures)
     ├── WhatsAppService ──▶ WhatsApp Cloud API (Meta)
-    └── Repositories   ──▶ PostgreSQL (Railway)
+    └── Repositories   ──▶ Azure Database for PostgreSQL
 ```
 
 ---
@@ -68,48 +68,53 @@ node src/scripts/find-ids.js
 
 Anota el `COLOCOLO_TEAM_ID` y el `LEAGUE_ID` y actualiza `.env`.
 
-### Paso 3: Crear y poblar la base de datos
+### Paso 3: Desplegar en Azure (cuenta de estudiante)
 
-Primero crea un proyecto en Railway con un servicio PostgreSQL.
-Copia el `DATABASE_URL` que Railway genera y ponlo en `.env`.
-
-```bash
-# Crear tablas
-npm run migrate
-
-# Insertar tu papá como primer usuario
-# (edita INITIAL_USER_NAME y INITIAL_USER_PHONE en .env primero)
-node src/db/seed.js
-```
-
-### Paso 4: Subir a GitHub
+Todo se crea en **un único resource group propio** (`rg-colocolo-notifier`, con tag
+`project=colocolo-notifier`), así no se mezcla con Geo Constanza ni otros proyectos.
+Borrar ese grupo elimina solo lo de Colo-Colo.
 
 ```bash
-git add .
-git commit -m "feat: initial backend"
-git push origin main
+az login
+cp azure/.env.azure.example azure/.env.azure   # completar valores (ignorado por git)
+./azure/deploy.sh
 ```
 
-### Paso 5: Desplegar en Railway
+Crea: Container Registry (Basic) · PostgreSQL Flexible Server (B1ms, 32 GB) ·
+Container Apps Environment · 4 Jobs con cron (UTC) y 1 Job manual de migración (se ejecuta solo al final).
+La imagen se construye en Azure (`az acr build`), no hace falta Docker local.
 
-1. En Railway → tu proyecto → **New Service → GitHub Repo**
-2. Apuntar al repositorio
-3. En **Variables**, agregar todas las de `.env.example` con valores reales
-4. Railway desplegará automáticamente en cada push a `main`
+| Job | Schedule (UTC) | Descripción |
+|---|---|---|
+| job-colocolo-prematch | `0 12 * * *` | 09:00 Chile (UTC-3) |
+| job-colocolo-reminder | `*/15 * * * *` | Envía cuando faltan 45-75 min para el partido |
+| job-colocolo-lineup | `*/15 18-21 * * *` | 15:00–18:00 Chile |
+| job-colocolo-result | `0,30 21-23 * * *` | 18:00–20:00 Chile |
 
-### Paso 6: Configurar los Cron Jobs en Railway
+> ⚠️ Cron en Azure es siempre UTC. Chile es UTC-3 (verano) o UTC-4 (invierno): ajustar en `azure/deploy.sh`.
+> ⚠️ Suscripción de estudiante: solo permite ciertas regiones. Si `deploy.sh` falla por región,
+> revisa `az policy assignment list` o prueba otra (`eastus2`, `brazilsouth`, `centralus`...) en `AZ_LOCATION`.
 
-En tu proyecto Railway → **New Service → Cron Job** (crear 4):
+Actualizar tras un cambio de código: `git pull && ./azure/deploy.sh` (reconstruye imagen y actualiza los jobs).
 
-| Nombre | Comando | Schedule (UTC) | Descripción |
-|---|---|---|---|
-| prematch-daily | `npm run job:prematch` | `0 12 * * *` | 09:00 Chile (UTC-3) |
-| reminder-check | `npm run job:reminder` | `*/15 * * * *` | Cada 15 min, todo el día — envía cuando faltan 45-90 min para el partido |
-| lineup-check | `npm run job:lineup` | `*/15 18-21 * * *` | Cada 15 min, 15:00–18:00 Chile |
-| result-check | `npm run job:result` | `0,30 21-23 * * *` | Cada 30 min, 18:00–20:00 Chile |
+### Paso 4: Traspasar datos desde Railway (una sola vez)
 
-> ⚠️ Ajustar los horarios según la hora habitual de los partidos de Colo-Colo.
-> Chile es UTC-3 (invierno) o UTC-4 (verano). Verificar siempre con un convertidor.
+Mientras aún puedas leer la BD de Railway (o desde un backup `pg_dump`):
+
+```bash
+RAILWAY_DATABASE_URL='postgresql://...' ./azure/migrate-data.sh
+```
+
+Copia `users`, `subscriptions`, `team_leagues` y `sent_notifications` (evita reenviar avisos ya enviados).
+Si Railway ya no está accesible, en su lugar: `npm run setup` apuntando `DATABASE_URL` a Azure
+(abre antes tu IP en el firewall de PostgreSQL) para crear tablas y el usuario inicial.
+
+### Paso 5: Verificar
+
+```bash
+az containerapp job start -n job-colocolo-prematch -g rg-colocolo-notifier
+az containerapp job execution list -n job-colocolo-prematch -g rg-colocolo-notifier -o table
+```
 
 ---
 
@@ -146,6 +151,11 @@ UserRepository.addSubscriber({ name: 'Amigo Juan', phone: '+56987654321', teamId
 ## Estructura del proyecto
 
 ```
+Dockerfile                  Imagen del servicio (Node 20 alpine)
+azure/
+  deploy.sh                 Crea/actualiza todo en Azure (idempotente)
+  migrate-data.sh           Copia datos Railway → Azure
+  .env.azure.example        Plantilla de configuración (copiar a .env.azure)
 src/
   config/index.js           Configuración centralizada (env vars)
   db/
@@ -192,7 +202,6 @@ psql $DATABASE_URL -c "SELECT * FROM sent_notifications ORDER BY sent_at DESC LI
 
 | Servicio | Plan | Costo |
 |---|---|---|
-| Railway | Hobby (suscripción existente) | $0 adicional |
-| API-Football | Free (100 req/día) | $0 |
+| Azure (créditos estudiante) | ACR Basic ~US$5/mes + PostgreSQL B1ms (gratis 12 meses o ~US$13/mes) + Container Apps Jobs (consumo mínimo) | descuenta de los US$100 |
 | WhatsApp Cloud API | Número de prueba Meta | $0 |
-| **Total MVP** | | **$0** |
+| **Total aprox.** | | **~US$5–18/mes** (de créditos) |
