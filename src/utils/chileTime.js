@@ -5,7 +5,7 @@ const config = require('../config');
 /**
  * Retorna la fecha actual en Chile como string YYYY-MM-DD.
  * Crítico: nunca usar new Date().toISOString() directamente porque
- * el servidor en Railway puede estar en UTC u otra zona horaria.
+ * el servidor en Azure puede estar en UTC u otra zona horaria.
  */
 function todayInChile() {
   return new Date().toLocaleDateString('en-CA', { timeZone: config.timezone }); // 'en-CA' → YYYY-MM-DD
