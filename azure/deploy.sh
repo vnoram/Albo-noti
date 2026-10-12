@@ -83,7 +83,7 @@ upsert_job() {
       --env-vars "NODE_ENV=production" "TZ=America/Santiago" \
         "DATABASE_URL=secretref:database-url" "WHATSAPP_TOKEN=secretref:whatsapp-token" \
         "WHATSAPP_PHONE_NUMBER_ID=$WHATSAPP_PHONE_NUMBER_ID" \
-        "WA_TEMPLATE_PREMATCH=${WA_TEMPLATE_PREMATCH:-colocolo_prematch}" \
+        "WA_TEMPLATE_PREMATCH=${WA_TEMPLATE_PREMATCH:-prematch}" \
         "WA_TEMPLATE_REMINDER=${WA_TEMPLATE_REMINDER:-recordatorio}" \
         "WA_TEMPLATE_LINEUP=${WA_TEMPLATE_LINEUP:-colocolo_lineup}" \
         "WA_TEMPLATE_RESULT=${WA_TEMPLATE_RESULT:-colocolo_result}" \
