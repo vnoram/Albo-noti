@@ -24,7 +24,7 @@ PG="pg-${AZ_PREFIX}-notifier"
 DB="colocolo_notifier"
 CAE="cae-${AZ_PREFIX}-notifier"
 TAGS="project=colocolo-notifier owner=colocolo"
-IMAGE_TAG="$(git rev-parse --short HEAD 2>/dev/null || date +%s)"
+IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse --short HEAD 2>/dev/null || date +%s)}"
 
 az account set --subscription "$AZ_SUBSCRIPTION_ID"
 az extension add --name containerapp --upgrade --only-show-errors
@@ -38,8 +38,12 @@ az group create -n "$RG" -l "$AZ_LOCATION" --tags $TAGS -o none
 echo "▶ Container Registry $ACR"
 az acr show -n "$ACR" -g "$RG" -o none 2>/dev/null || \
   az acr create -n "$ACR" -g "$RG" --sku Basic --admin-enabled true --tags $TAGS -o none
-echo "▶ Build de la imagen en Azure (no requiere Docker local)"
-az acr build -r "$ACR" -g "$RG" -t "colocolo-notifier:$IMAGE_TAG" -t "colocolo-notifier:latest" . -o none
+# SKIP_BUILD=1 si la imagen ya se subio por otro medio (las suscripciones de estudiante
+# suelen tener ACR Tasks bloqueado: TasksOperationsNotAllowed).
+if [[ -z "${SKIP_BUILD:-}" ]]; then
+  echo "▶ Build de la imagen en Azure (no requiere Docker local)"
+  az acr build -r "$ACR" -g "$RG" -t "colocolo-notifier:$IMAGE_TAG" -t "colocolo-notifier:latest" . -o none
+fi
 IMAGE="$ACR.azurecr.io/colocolo-notifier:$IMAGE_TAG"
 ACR_USER="$(az acr credential show -n "$ACR" --query username -o tsv)"
 ACR_PASS="$(az acr credential show -n "$ACR" --query 'passwords[0].value' -o tsv)"
@@ -50,14 +54,15 @@ if ! az postgres flexible-server show -n "$PG" -g "$RG" -o none 2>/dev/null; the
     --admin-user "$PG_ADMIN_USER" --admin-password "$PG_ADMIN_PASSWORD" \
     --tier Burstable --sku-name Standard_B1ms --storage-size 32 --version 16 \
     --public-access 0.0.0.0 --tags $TAGS --yes -o none     # 0.0.0.0 = solo servicios Azure
-  az postgres flexible-server db create -g "$RG" -s "$PG" -d "$DB" -o none
 fi
+az postgres flexible-server db show -g "$RG" --server-name "$PG" --database-name "$DB" -o none 2>/dev/null || \
+  az postgres flexible-server db create -g "$RG" --server-name "$PG" --name "$DB" -o none
 PG_HOST="$PG.postgres.database.azure.com"
 DATABASE_URL="postgresql://${PG_ADMIN_USER}:${PG_ADMIN_PASSWORD}@${PG_HOST}:5432/${DB}?sslmode=require"
 
 echo "▶ Container Apps Environment $CAE"
 az containerapp env show -n "$CAE" -g "$RG" -o none 2>/dev/null || \
-  az containerapp env create -n "$CAE" -g "$RG" -l "$AZ_LOCATION" --tags $TAGS -o none
+  az containerapp env create -n "$CAE" -g "$RG" -l "$AZ_LOCATION" --environment-mode WorkloadProfiles --tags $TAGS -o none   # NO "Express": no admite Jobs
 
 # upsert_job <nombre> <cron|manual> <comando-js>
 upsert_job() {
