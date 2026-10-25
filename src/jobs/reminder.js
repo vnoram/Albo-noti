@@ -68,7 +68,10 @@ async function runReminder() {
         try {
           await WhatsAppService.sendReminder(user.phone, data);
           logger.info('  ' + user.name + ': OK');
-        } catch (err) { logger.error('  ' + user.name + ': ERROR ' + err.message); }
+        } catch (err) {
+          logger.error('  ' + user.name + ': ERROR ' + err.message);
+          await NotificationRepository.release(fixture.id, user.id, 'reminder', fixture.source);
+        }
       }
     }
   }

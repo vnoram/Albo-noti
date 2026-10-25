@@ -25,8 +25,10 @@ const templates = {
     const { rival } = getTeamContext(fixture, teamId);
     const jugadores = lineupData.startingXI
       .map((nombre, i) => (i + 1) + '. ' + nombre)
-      .join('\n');
-    return { rival, jugadores: 'Formacion ' + lineupData.formation + '\n' + jugadores };
+      .join(' | ');
+    // Meta no permite saltos de linea (\n) en las variables de plantilla (error 132018):
+    // todo va en una sola linea separado por " | ".
+    return { rival, jugadores: 'Formacion ' + lineupData.formation + ' | ' + jugadores };
   },
 
   result(fixtureStatus, teamId) {
