@@ -47,6 +47,19 @@ const NotificationRepository = {
     );
     return result.rowCount > 0;
   },
+
+  /**
+   * Libera una reclamacion cuando el envio fallo, para que la proxima corrida
+   * del cron (cada 15 min) reintente en vez de perder el aviso.
+   */
+  async release(fixtureId, userId, type, source) {
+    const src = source || 'espn';
+    await pool.query(
+      `DELETE FROM sent_notifications
+       WHERE source=$1 AND fixture_id=$2 AND user_id=$3 AND type=$4`,
+      [src, fixtureId, userId, type]
+    );
+  },
 };
 
 module.exports = NotificationRepository;
